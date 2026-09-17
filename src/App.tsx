@@ -24,7 +24,7 @@ interface DesktopInfo {
   name: string;
 }
 
-type Tab = "desktops" | "shortcuts" | "settings";
+type Tab = "desktops" | "shortcuts";
 
 // Alt+1..0 → desktop 1..10 (Alt+1 = 0 … Alt+9 = 8, Alt+0 = 9)
 const SHORTCUTS: [string, string][] = (() => {
@@ -112,6 +112,7 @@ function DesktopRow({
 
 function App() {
   const [tab, setTab] = useState<Tab>("desktops");
+  const [view, setView] = useState<"main" | "settings">("main");
   const [desktops, setDesktops] = useState<DesktopInfo[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +138,25 @@ function App() {
 
   useEffect(() => {
     refresh();
-    // Stay in sync with changes made anywhere (hotkeys, Windows Task View, …).
     const unlisten = listen("desktops-changed", () => refresh());
-    // Load autostart state.
-    isEnabled().then(setAutoStart).catch(() => {});
+
+    // Autostart is ON by default on first run; respect the user's choice after.
+    isEnabled()
+      .then(async (enabled) => {
+        if (!localStorage.getItem("autostart_initialized")) {
+          try {
+            await enable();
+            setAutoStart(true);
+          } catch {
+            setAutoStart(enabled);
+          }
+          localStorage.setItem("autostart_initialized", "1");
+        } else {
+          setAutoStart(enabled);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       unlisten.then((f) => f());
     };
@@ -203,71 +219,29 @@ function App() {
 
   return (
     <main className="container">
-      <header>
-        <h1>DeskShift</h1>
-        <p className="tagline">less mouse, more keyboard</p>
+      <header className="header">
+        <div>
+          <h1>DeskShift</h1>
+          <p className="tagline">Keyboard-first virtual desktop manager for Windows</p>
+        </div>
+        <button className="gear-btn" onClick={() => setView("settings")} title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </header>
-
-      <nav className="tabs">
-        <button className={tab === "desktops" ? "active" : ""} onClick={() => setTab("desktops")}>
-          Desktops
-        </button>
-        <button className={tab === "shortcuts" ? "active" : ""} onClick={() => setTab("shortcuts")}>
-          Shortcuts
-        </button>
-        <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
-          Settings
-        </button>
-      </nav>
 
       {error && <div className="error">{error}</div>}
 
-      {tab === "desktops" && (
+      {view === "settings" ? (
         <section>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={desktops.map((d) => d.index)} strategy={verticalListSortingStrategy}>
-              <ul className="desktops">
-                {desktops.map((d) => (
-                  <DesktopRow
-                    key={d.index}
-                    desktop={d}
-                    isCurrent={d.index === current}
-                    editing={editing === d.index}
-                    draft={draft}
-                    onDraft={(v) => setDraft(v)}
-                    onStartRename={() => startRename(d)}
-                    onCommitRename={() => commitRename(d.index)}
-                    onCancelRename={() => setEditing(null)}
-                    onSwitch={() => run(() => invoke("switch_desktop", { index: d.index }))}
-                    onMove={() => run(() => invoke("move_active_window", { index: d.index }))}
-                    onRemove={() => run(() => invoke("remove_desktop", { index: d.index }))}
-                  />
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-          <button className="new" onClick={() => run(() => invoke("create_desktop"))}>
-            + New desktop
-          </button>
-        </section>
-      )}
-
-      {tab === "shortcuts" && (
-        <section>
-          <ul className="hotkeys">
-            {SHORTCUTS.map(([keys, desc]) => (
-              <li key={keys}>
-                <code>{keys}</code>
-                <span>{desc}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {tab === "settings" && (
-        <section>
-          <h2>General</h2>
+          <div className="settings-header">
+            <button className="back-btn" onClick={() => setView("main")} title="Back">
+              ←
+            </button>
+            <h2>Settings</h2>
+          </div>
           <label className="setting">
             <div>
               <div className="setting-title">Start on Windows startup</div>
@@ -276,6 +250,60 @@ function App() {
             <input type="checkbox" checked={autoStart} onChange={toggleAutoStart} />
           </label>
         </section>
+      ) : (
+        <>
+          <nav className="tabs">
+            <button className={tab === "desktops" ? "active" : ""} onClick={() => setTab("desktops")}>
+              Desktops
+            </button>
+            <button className={tab === "shortcuts" ? "active" : ""} onClick={() => setTab("shortcuts")}>
+              Shortcuts
+            </button>
+          </nav>
+
+          {tab === "desktops" && (
+            <section>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={desktops.map((d) => d.index)} strategy={verticalListSortingStrategy}>
+                  <ul className="desktops">
+                    {desktops.map((d) => (
+                      <DesktopRow
+                        key={d.index}
+                        desktop={d}
+                        isCurrent={d.index === current}
+                        editing={editing === d.index}
+                        draft={draft}
+                        onDraft={(v) => setDraft(v)}
+                        onStartRename={() => startRename(d)}
+                        onCommitRename={() => commitRename(d.index)}
+                        onCancelRename={() => setEditing(null)}
+                        onSwitch={() => run(() => invoke("switch_desktop", { index: d.index }))}
+                        onMove={() => run(() => invoke("move_active_window", { index: d.index }))}
+                        onRemove={() => run(() => invoke("remove_desktop", { index: d.index }))}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+              <button className="new" onClick={() => run(() => invoke("create_desktop"))}>
+                + New desktop
+              </button>
+            </section>
+          )}
+
+          {tab === "shortcuts" && (
+            <section>
+              <ul className="hotkeys">
+                {SHORTCUTS.map(([keys, desc]) => (
+                  <li key={keys}>
+                    <code>{keys}</code>
+                    <span>{desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
     </main>
   );

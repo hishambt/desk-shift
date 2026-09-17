@@ -32,10 +32,61 @@ header h1 {
   letter-spacing: -0.5px;
 }
 
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
 .tagline {
-  margin: 4px 0 24px;
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.gear-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.gear-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.back-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 h2 {
