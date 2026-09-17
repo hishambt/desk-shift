@@ -14,6 +14,11 @@ struct DesktopInfo {
     name: String,
 }
 
+/// `winvd::Error` doesn't implement `Display`, so convert via `Debug`.
+fn vd_err(e: winvd::Error) -> String {
+    format!("{e:?}")
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Tauri commands (invoked from the React frontend via `invoke`)
 // ─────────────────────────────────────────────────────────────────────────
@@ -21,8 +26,8 @@ struct DesktopInfo {
 #[tauri::command]
 fn list_desktops() -> Result<Vec<DesktopInfo>, String> {
     let mut out = Vec::new();
-    for d in winvd::get_desktops().map_err(|e| e.to_string())? {
-        let index = d.get_index().map_err(|e| e.to_string())?;
+    for d in winvd::get_desktops().map_err(vd_err)? {
+        let index = d.get_index().map_err(vd_err)?;
         let name = match d.get_name() {
             Ok(n) if !n.trim().is_empty() => n,
             _ => format!("Desktop {}", index + 1),
@@ -36,35 +41,33 @@ fn list_desktops() -> Result<Vec<DesktopInfo>, String> {
 fn current_desktop() -> Result<u32, String> {
     winvd::get_current_desktop()
         .and_then(|d| d.get_index())
-        .map_err(|e| e.to_string())
+        .map_err(vd_err)
 }
 
 #[tauri::command]
 fn switch_desktop(index: u32) -> Result<(), String> {
-    winvd::switch_desktop(index).map_err(|e| e.to_string())
+    winvd::switch_desktop(index).map_err(vd_err)
 }
 
 #[tauri::command]
 fn create_desktop() -> Result<(), String> {
-    winvd::create_desktop()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    winvd::create_desktop().map(|_| ()).map_err(vd_err)
 }
 
 #[tauri::command]
 fn remove_desktop(index: u32) -> Result<(), String> {
-    let count = winvd::get_desktop_count().map_err(|e| e.to_string())?;
+    let count = winvd::get_desktop_count().map_err(vd_err)?;
     if count <= 1 {
         return Err("Cannot remove the last desktop".into());
     }
     let fallback = if index == 0 { 1 } else { index - 1 };
-    winvd::remove_desktop(index, fallback).map_err(|e| e.to_string())
+    winvd::remove_desktop(index, fallback).map_err(vd_err)
 }
 
 #[tauri::command]
 fn move_active_window(index: u32) -> Result<(), String> {
-    let hwnd = GetForegroundWindow();
-    winvd::move_window_to_desktop(index, &hwnd).map_err(|e| e.to_string())
+    let hwnd = unsafe { GetForegroundWindow() };
+    winvd::move_window_to_desktop(index, &hwnd).map_err(vd_err)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -85,7 +88,7 @@ const DIGIT_CODES: [Code; 10] = [
 ];
 
 /// Alt+1..0 → desktop index 0..9 (Alt+1 = 0 … Alt+9 = 8, Alt+0 = 9).
-/// Alt+Shift+1..0 → move the active window to that desktop (and follow).
+/// Alt+Shift+1..0 → move the active window to that desktop.
 fn digit_index(shortcut: &Shortcut, with_shift: bool) -> Option<u32> {
     let modifiers = if with_shift {
         Modifiers::ALT | Modifiers::SHIFT
@@ -99,7 +102,7 @@ fn digit_index(shortcut: &Shortcut, with_shift: bool) -> Option<u32> {
 }
 
 fn move_foreground_window(index: u32) {
-    let hwnd = GetForegroundWindow();
+    let hwnd = unsafe { GetForegroundWindow() };
     let _ = winvd::move_window_to_desktop(index, &hwnd);
 }
 
