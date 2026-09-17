@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 import {
   DndContext,
   DragEndEvent,
@@ -23,14 +24,18 @@ interface DesktopInfo {
   name: string;
 }
 
-type Tab = "desktops" | "shortcuts";
+type Tab = "desktops" | "shortcuts" | "settings";
 
-const HOTKEYS: [string, string][] = [
-  ["Alt+1 … Alt+0", "Switch to desktop 1–10"],
-  ["Alt+Shift+1 … Alt+Shift+0", "Move active window to desktop 1–10 (and follow)"],
-  ["Alt+N", "New desktop"],
-  ["Alt+W", "Close current desktop"],
-];
+// Alt+1..0 → desktop 1..10 (Alt+1 = 0 … Alt+9 = 8, Alt+0 = 9)
+const SHORTCUTS: [string, string][] = (() => {
+  const list: [string, string][] = [];
+  const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+  digits.forEach((d, i) => list.push([`Alt+${d}`, `Switch to desktop ${i + 1}`]));
+  digits.forEach((d, i) => list.push([`Alt+Shift+${d}`, `Move active window to desktop ${i + 1}`]));
+  list.push(["Alt+N", "New desktop"]);
+  list.push(["Alt+W", "Close current desktop"]);
+  return list;
+})();
 
 interface DesktopRowProps {
   desktop: DesktopInfo;
@@ -112,6 +117,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+  const [autoStart, setAutoStart] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -133,6 +139,8 @@ function App() {
     refresh();
     // Stay in sync with changes made anywhere (hotkeys, Windows Task View, …).
     const unlisten = listen("desktops-changed", () => refresh());
+    // Load autostart state.
+    isEnabled().then(setAutoStart).catch(() => {});
     return () => {
       unlisten.then((f) => f());
     };
@@ -167,20 +175,30 @@ function App() {
     const from = active.id as number;
     const to = over.id as number;
 
-    // Optimistic local reorder for a smooth visual.
     setDesktops((items) => {
       const oldIndex = items.findIndex((d) => d.index === from);
       const newIndex = items.findIndex((d) => d.index === to);
       return arrayMove(items, oldIndex, newIndex);
     });
 
-    // Persist; refresh reconciles (and reverts the optimistic move on error).
     invoke("reorder_desktop", { index: from, position: to })
       .then(() => refresh())
       .catch((e) => {
         setError(String(e));
         refresh();
       });
+  }
+
+  async function toggleAutoStart() {
+    const next = !autoStart;
+    try {
+      if (next) await enable();
+      else await disable();
+      setAutoStart(next);
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   return (
@@ -196,6 +214,9 @@ function App() {
         </button>
         <button className={tab === "shortcuts" ? "active" : ""} onClick={() => setTab("shortcuts")}>
           Shortcuts
+        </button>
+        <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
+          Settings
         </button>
       </nav>
 
@@ -234,13 +255,26 @@ function App() {
       {tab === "shortcuts" && (
         <section>
           <ul className="hotkeys">
-            {HOTKEYS.map(([keys, desc]) => (
+            {SHORTCUTS.map(([keys, desc]) => (
               <li key={keys}>
                 <code>{keys}</code>
                 <span>{desc}</span>
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {tab === "settings" && (
+        <section>
+          <h2>General</h2>
+          <label className="setting">
+            <div>
+              <div className="setting-title">Start on Windows startup</div>
+              <div className="setting-desc">Launch DeskShift automatically when you sign in.</div>
+            </div>
+            <input type="checkbox" checked={autoStart} onChange={toggleAutoStart} />
+          </label>
         </section>
       )}
     </main>

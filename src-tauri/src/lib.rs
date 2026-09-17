@@ -277,6 +277,7 @@ const SHORTCUTS: [&str; 22] = [
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             list_desktops,
             current_desktop,
