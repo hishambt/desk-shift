@@ -3,6 +3,7 @@ use super::interfaces::*;
 use super::Result;
 use std::convert::TryFrom;
 use std::rc::Rc;
+use std::sync::Mutex;
 use std::{cell::RefCell, ffi::c_void};
 use windows::core::HRESULT;
 use windows::Win32::Foundation::HWND;
@@ -865,22 +866,20 @@ thread_local! {
         std::mem::ManuallyDrop::new(ComObjects::new());
 }
 
-/// This is a helper function to initialize and run COM related functions in a
-/// a single thread.
+/// A global lock that serializes all COM calls. The Windows Virtual Desktop
+/// COM objects crash when invoked concurrently from different threads.
+static COM_LOCK: Mutex<()> = Mutex::new(());
+
+/// This is a helper function to initialize and run COM related functions.
 ///
-/// Virtual Desktop COM Objects don't like to being called from different
-/// threads rapidly, something goes wrong. This function ensures that all COM
-/// calls are done in a single thread.
+/// Virtual Desktop COM Objects don't like being called from different threads
+/// rapidly — something goes wrong. This lock serializes every COM call so they
+/// never overlap across threads.
 pub fn with_com_objects<F, T>(f: F) -> Result<T>
 where
     F: Fn(&ComObjects) -> Result<T> + 'static,
     T: 'static,
 {
-    // return std::thread::scope(|env| {
-    //     let com2 = ComObjects::new();
-    //     run_function_and_retry(&f, &com2)
-    // });
-
-    // return COM_OBJECTS.with(|c| run_function_and_retry(&f, &c));
-    return COM_OBJECTS.with(|c| f(&c));
+    let _guard = COM_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    COM_OBJECTS.with(|c| f(&c))
 }
