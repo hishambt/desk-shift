@@ -7,7 +7,7 @@ use serde::Serialize;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
+    Emitter, Manager,
 };
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 use windows::Win32::Foundation::HWND;
@@ -195,6 +195,11 @@ fn move_active_window(index: u32) -> Result<(), String> {
     move_to_desktop(index)
 }
 
+#[tauri::command]
+fn rename_desktop(index: u32, name: String) -> Result<(), String> {
+    winvd::get_desktop(index).set_name(&name).map_err(vd_err)
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Global hotkeys
 // ─────────────────────────────────────────────────────────────────────────
@@ -274,6 +279,7 @@ pub fn run() {
             create_desktop,
             remove_desktop,
             move_active_window,
+            rename_desktop,
         ])
         .on_window_event(|window, event| {
             // Close-to-tray: hide instead of exiting so it keeps running in the tray.
@@ -326,6 +332,21 @@ pub fn run() {
                     _ => {}
                 })
                 .build(app)?;
+
+            // Desktop change events → notify the frontend so its list stays in
+            // sync even when desktops change via hotkeys or Windows' Task View.
+            {
+                let (tx, rx) = std::sync::mpsc::channel::<winvd::DesktopEvent>();
+                if let Ok(listener) = winvd::listen_desktop_events(tx) {
+                    std::mem::forget(listener); // live for the app's lifetime
+                }
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    for _event in rx {
+                        let _ = handle.emit("desktops-changed", ());
+                    }
+                });
+            }
 
             Ok(())
         })
