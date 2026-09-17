@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import "./App.css";
 
 interface DesktopInfo {
@@ -17,6 +32,79 @@ const HOTKEYS: [string, string][] = [
   ["Alt+W", "Close current desktop"],
 ];
 
+interface DesktopRowProps {
+  desktop: DesktopInfo;
+  isCurrent: boolean;
+  editing: boolean;
+  draft: string;
+  onDraft: (v: string) => void;
+  onStartRename: () => void;
+  onCommitRename: () => void;
+  onCancelRename: () => void;
+  onSwitch: () => void;
+  onMove: () => void;
+  onRemove: () => void;
+}
+
+function DesktopRow({
+  desktop,
+  isCurrent,
+  editing,
+  draft,
+  onDraft,
+  onStartRename,
+  onCommitRename,
+  onCancelRename,
+  onSwitch,
+  onMove,
+  onRemove,
+}: DesktopRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: desktop.index,
+  });
+
+  return (
+    <li
+      ref={setNodeRef}
+      className={isCurrent ? "current" : ""}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+    >
+      <span className="drag-handle" {...attributes} {...listeners} title="Drag to reorder">
+        ⋮⋮
+      </span>
+      <span className="badge">{desktop.index + 1}</span>
+      {editing ? (
+        <input
+          className="rename-input"
+          autoFocus
+          value={draft}
+          onChange={(e) => onDraft(e.currentTarget.value)}
+          onBlur={onCommitRename}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onCommitRename();
+            if (e.key === "Escape") onCancelRename();
+          }}
+        />
+      ) : (
+        <span className="name" title="Double-click to rename" onDoubleClick={onStartRename}>
+          {desktop.name}
+        </span>
+      )}
+      {isCurrent && <span className="here">● active</span>}
+      <div className="actions">
+        <button onClick={onSwitch}>Switch</button>
+        <button onClick={onMove}>Move</button>
+        <button onClick={onStartRename}>Rename</button>
+        <button onClick={onRemove}>Remove</button>
+      </div>
+    </li>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState<Tab>("desktops");
   const [desktops, setDesktops] = useState<DesktopInfo[]>([]);
@@ -24,8 +112,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   async function refresh() {
     try {
@@ -72,12 +160,27 @@ function App() {
     await run(() => invoke("rename_desktop", { index, name }));
   }
 
-  function handleDrop(target: number) {
-    if (dragging !== null && dragging !== target) {
-      run(() => invoke("reorder_desktop", { index: dragging, position: target }));
-    }
-    setDragging(null);
-    setDragOver(null);
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const from = active.id as number;
+    const to = over.id as number;
+
+    // Optimistic local reorder for a smooth visual.
+    setDesktops((items) => {
+      const oldIndex = items.findIndex((d) => d.index === from);
+      const newIndex = items.findIndex((d) => d.index === to);
+      return arrayMove(items, oldIndex, newIndex);
+    });
+
+    // Persist; refresh reconciles (and reverts the optimistic move on error).
+    invoke("reorder_desktop", { index: from, position: to })
+      .then(() => refresh())
+      .catch((e) => {
+        setError(String(e));
+        refresh();
+      });
   }
 
   return (
@@ -100,66 +203,28 @@ function App() {
 
       {tab === "desktops" && (
         <section>
-          <ul className="desktops">
-            {desktops.map((d) => (
-              <li
-                key={d.index}
-                className={[
-                  d.index === current ? "current" : "",
-                  dragOver === d.index ? "dragover" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                draggable
-                onDragStart={() => setDragging(d.index)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(d.index);
-                }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={() => handleDrop(d.index)}
-                onDragEnd={() => {
-                  setDragging(null);
-                  setDragOver(null);
-                }}
-              >
-                <span className="drag-handle" title="Drag to reorder">
-                  ⋮⋮
-                </span>
-                <span className="badge">{d.index + 1}</span>
-                {editing === d.index ? (
-                  <input
-                    className="rename-input"
-                    autoFocus
-                    value={draft}
-                    onChange={(e) => setDraft(e.currentTarget.value)}
-                    onBlur={() => commitRename(d.index)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitRename(d.index);
-                      if (e.key === "Escape") setEditing(null);
-                    }}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={desktops.map((d) => d.index)} strategy={verticalListSortingStrategy}>
+              <ul className="desktops">
+                {desktops.map((d) => (
+                  <DesktopRow
+                    key={d.index}
+                    desktop={d}
+                    isCurrent={d.index === current}
+                    editing={editing === d.index}
+                    draft={draft}
+                    onDraft={(v) => setDraft(v)}
+                    onStartRename={() => startRename(d)}
+                    onCommitRename={() => commitRename(d.index)}
+                    onCancelRename={() => setEditing(null)}
+                    onSwitch={() => run(() => invoke("switch_desktop", { index: d.index }))}
+                    onMove={() => run(() => invoke("move_active_window", { index: d.index }))}
+                    onRemove={() => run(() => invoke("remove_desktop", { index: d.index }))}
                   />
-                ) : (
-                  <span className="name" title="Double-click to rename" onDoubleClick={() => startRename(d)}>
-                    {d.name}
-                  </span>
-                )}
-                {d.index === current && <span className="here">● active</span>}
-                <div className="actions">
-                  <button onClick={() => run(() => invoke("switch_desktop", { index: d.index }))}>
-                    Switch
-                  </button>
-                  <button onClick={() => run(() => invoke("move_active_window", { index: d.index }))}>
-                    Move
-                  </button>
-                  <button onClick={() => startRename(d)}>Rename</button>
-                  <button onClick={() => run(() => invoke("remove_desktop", { index: d.index }))}>
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
           <button className="new" onClick={() => run(() => invoke("create_desktop"))}>
             + New desktop
           </button>
