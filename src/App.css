@@ -171,8 +171,18 @@ button {
 }
 
 button:hover {
-	border-color: var(--accent);
-	color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  border-color: var(--border);
+  color: var(--text);
 }
 
 button.new {

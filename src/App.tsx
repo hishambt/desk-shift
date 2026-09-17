@@ -49,6 +49,7 @@ interface DesktopRowProps {
   onSwitch: () => void;
   onMove: () => void;
   onRemove: () => void;
+  canRemove: boolean;
 }
 
 function DesktopRow({
@@ -63,6 +64,7 @@ function DesktopRow({
   onSwitch,
   onMove,
   onRemove,
+  canRemove,
 }: DesktopRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: desktop.index,
@@ -104,7 +106,7 @@ function DesktopRow({
         <button onClick={onSwitch}>Switch</button>
         <button onClick={onMove}>Move</button>
         <button onClick={onStartRename}>Rename</button>
-        <button onClick={onRemove}>Remove</button>
+        <button onClick={onRemove} disabled={!canRemove} title={canRemove ? "Remove this desktop" : "At least one desktop is required"}>Remove</button>
       </div>
     </li>
   );
@@ -282,6 +284,7 @@ function App() {
                         onSwitch={() => run(() => invoke("switch_desktop", { index: d.index }))}
                         onMove={() => run(() => invoke("move_active_window", { index: d.index }))}
                         onRemove={() => run(() => invoke("remove_desktop", { index: d.index }))}
+                        canRemove={desktops.length > 1}
                       />
                     ))}
                   </ul>
