@@ -12,6 +12,11 @@
 
 DeskShift puts your Windows virtual desktops under your fingertips. Switch desktops, move windows, and create or close workspaces instantly from your keyboard — no mouse, no digging through Task View.
 
+<p align="center">
+  <img src="screenshots/main.png" alt="DeskShift" width="520">
+</p>
+
+
 > ⚠️ **Heads up:** DeskShift is built on Windows' *undocumented* virtual-desktop COM interfaces (via the [`winvd`](https://crates.io/crates/winvd) crate). These are not a supported public API, and Microsoft changes them between Windows builds. **Requires Windows 11 24H2 (build 26100.2605) or later.**
 
 ## Features
