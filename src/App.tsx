@@ -27,6 +27,8 @@ interface DesktopInfo {
 type Tab = "desktops" | "shortcuts";
 
 // Alt+1..0 → desktop 1..10 (Alt+1 = 0 … Alt+9 = 8, Alt+0 = 9)
+const HOTKEY_DIGIT = (i: number) => (i === 9 ? "0" : String(i + 1));
+
 const SHORTCUTS: [string, string][] = (() => {
   const list: [string, string][] = [];
   const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
@@ -103,9 +105,9 @@ function DesktopRow({
       )}
       {isCurrent && <span className="here">● active</span>}
       <div className="actions">
-        <button onClick={onSwitch}>Switch</button>
-        <button onClick={onMove}>Move</button>
-        <button onClick={onStartRename}>Rename</button>
+        <button onClick={onSwitch} title={`Switch to this desktop (Alt+${HOTKEY_DIGIT(desktop.index)})`}>Switch</button>
+        <button onClick={onMove} title={`Move the active window here (Alt+Shift+${HOTKEY_DIGIT(desktop.index)})`}>Move</button>
+        <button onClick={onStartRename} title="Rename this desktop">Rename</button>
         <button onClick={onRemove} disabled={!canRemove} title={canRemove ? "Remove this desktop" : "At least one desktop is required"}>Remove</button>
       </div>
     </li>
