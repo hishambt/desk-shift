@@ -171,6 +171,13 @@ pub fn run() {
             remove_desktop,
             move_active_window,
         ])
+        .on_window_event(|window, event| {
+            // Close-to-tray: hide instead of exiting so it keeps running in the tray.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
             #[cfg(desktop)]
             {
@@ -192,6 +199,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&open, &quit])?;
 
             TrayIconBuilder::new()
+                .icon(tauri::include_image!("icons/icon.ico"))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
