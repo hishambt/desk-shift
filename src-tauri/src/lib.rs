@@ -325,7 +325,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&open, &quit])?;
 
             TrayIconBuilder::new()
-                .icon(tauri::include_image!("icons/icon.ico"))
+                .icon(tauri::include_image!("icons/32x32.png"))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
