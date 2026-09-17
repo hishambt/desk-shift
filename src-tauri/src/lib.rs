@@ -180,8 +180,16 @@ fn current_desktop() -> Result<u32, String> {
 }
 
 #[tauri::command]
-fn switch_desktop(index: u32) -> Result<(), String> {
-    switch_to_desktop(index)
+fn switch_desktop(window: tauri::Window, index: u32) -> Result<(), String> {
+    // Follow the user: move DeskShift's own window to the target desktop, switch,
+    // then bring it to front — so you're never stranded on an empty desktop.
+    // (Hotkeys still use `switch_to_desktop` directly and do NOT follow.)
+    let raw = window.hwnd().map_err(|e| e.to_string())?;
+    let hwnd = hwnd_from_isize(raw.0 as isize);
+    winvd::move_window_to_desktop(index, &hwnd).map_err(vd_err)?;
+    switch_to_desktop(index)?;
+    focus_window(hwnd);
+    Ok(())
 }
 
 #[tauri::command]

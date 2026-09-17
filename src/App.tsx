@@ -293,6 +293,10 @@ function App() {
               <button className="new" onClick={() => run(() => invoke("create_desktop"))}>
                 + New desktop
               </button>
+              <p className="hint">
+                <code>Alt+1…0</code> switch · <code>Alt+Shift+1…0</code> move window ·{" "}
+                <code>Alt+N</code> new · <code>Alt+W</code> close
+              </p>
             </section>
           )}
 

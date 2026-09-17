@@ -222,7 +222,23 @@ button.new {
 }
 
 .hotkeys span {
-	color: var(--muted);
+  color: var(--muted);
+}
+
+.hint {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.hint code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--accent);
+  font-size: 11px;
 }
 
 /* Tabs */
