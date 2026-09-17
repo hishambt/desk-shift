@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "DeskShift",
+        "center": true,
         "width": 900,
         "height": 640,
         "resizable": false,
