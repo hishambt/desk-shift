@@ -125,7 +125,12 @@ fn move_to_desktop(num: u32) -> Result<(), String> {
     Ok(())
 }
 
+const MAX_DESKTOPS: u32 = 10;
+
 fn create_and_switch() -> Result<(), String> {
+    if winvd::get_desktop_count().map_err(vd_err)? >= MAX_DESKTOPS {
+        return Err(format!("Maximum of {} desktops", MAX_DESKTOPS));
+    }
     let new_index = winvd::create_desktop()
         .and_then(|d| d.get_index())
         .map_err(vd_err)?;
@@ -133,6 +138,9 @@ fn create_and_switch() -> Result<(), String> {
 }
 
 fn create_only() -> Result<(), String> {
+    if winvd::get_desktop_count().map_err(vd_err)? >= MAX_DESKTOPS {
+        return Err(format!("Maximum of {} desktops", MAX_DESKTOPS));
+    }
     winvd::create_desktop().map(|_| ()).map_err(vd_err)
 }
 
@@ -202,11 +210,6 @@ fn create_desktop() -> Result<(), String> {
 #[tauri::command]
 fn remove_desktop(index: u32) -> Result<(), String> {
     remove_desktop_at(index)
-}
-
-#[tauri::command]
-fn move_active_window(index: u32) -> Result<(), String> {
-    move_to_desktop(index)
 }
 
 #[tauri::command]
@@ -306,7 +309,6 @@ pub fn run() {
             switch_desktop,
             create_desktop,
             remove_desktop,
-            move_active_window,
             rename_desktop,
             reorder_desktop,
         ])

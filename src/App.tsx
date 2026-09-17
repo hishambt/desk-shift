@@ -28,6 +28,7 @@ type Tab = "desktops" | "shortcuts";
 
 // Alt+1..0 → desktop 1..10 (Alt+1 = 0 … Alt+9 = 8, Alt+0 = 9)
 const HOTKEY_DIGIT = (i: number) => (i === 9 ? "0" : String(i + 1));
+const MAX_DESKTOPS = 10;
 
 const SHORTCUTS: [string, string][] = (() => {
   const list: [string, string][] = [];
@@ -49,7 +50,6 @@ interface DesktopRowProps {
   onCommitRename: () => void;
   onCancelRename: () => void;
   onSwitch: () => void;
-  onMove: () => void;
   onRemove: () => void;
   canRemove: boolean;
 }
@@ -64,7 +64,6 @@ function DesktopRow({
   onCommitRename,
   onCancelRename,
   onSwitch,
-  onMove,
   onRemove,
   canRemove,
 }: DesktopRowProps) {
@@ -105,10 +104,15 @@ function DesktopRow({
       )}
       {isCurrent && <span className="here">● active</span>}
       <div className="actions">
-        <button onClick={onSwitch} title={`Switch to this desktop (Alt+${HOTKEY_DIGIT(desktop.index)})`}>Switch</button>
-        <button onClick={onMove} title={`Move the active window here (Alt+Shift+${HOTKEY_DIGIT(desktop.index)})`}>Move</button>
-        <button onClick={onStartRename} title="Rename this desktop">Rename</button>
-        <button onClick={onRemove} disabled={!canRemove} title={canRemove ? "Remove this desktop" : "At least one desktop is required"}>Remove</button>
+        <button className="icon-btn" data-tip={`Switch to this desktop (Alt+${HOTKEY_DIGIT(desktop.index)})`} onClick={onSwitch} aria-label="Switch">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+        </button>
+        <button className="icon-btn" data-tip="Rename this desktop" onClick={onStartRename} aria-label="Rename">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+        </button>
+        <button className="icon-btn" data-tip={canRemove ? "Remove this desktop" : "At least one desktop is required"} onClick={onRemove} disabled={!canRemove} aria-label="Remove">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+        </button>
       </div>
     </li>
   );
@@ -284,7 +288,6 @@ function App() {
                         onCommitRename={() => commitRename(d.index)}
                         onCancelRename={() => setEditing(null)}
                         onSwitch={() => run(() => invoke("switch_desktop", { index: d.index }))}
-                        onMove={() => run(() => invoke("move_active_window", { index: d.index }))}
                         onRemove={() => run(() => invoke("remove_desktop", { index: d.index }))}
                         canRemove={desktops.length > 1}
                       />
@@ -292,7 +295,12 @@ function App() {
                   </ul>
                 </SortableContext>
               </DndContext>
-              <button className="new" onClick={() => run(() => invoke("create_desktop"))}>
+              <button
+                className="new"
+                disabled={desktops.length >= MAX_DESKTOPS}
+                title={desktops.length >= MAX_DESKTOPS ? `Maximum of ${MAX_DESKTOPS} desktops reached` : undefined}
+                onClick={() => run(() => invoke("create_desktop"))}
+              >
                 + New desktop
               </button>
               <p className="hint">
