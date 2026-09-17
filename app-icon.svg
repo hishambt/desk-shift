@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- dark squircle background -->
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="#1e1e24"/>
+  <!-- 4 orange panes, right column shifted up (DeskShift) -->
+  <rect x="214" y="274" width="280" height="280" rx="28" fill="#ff8c42"/>
+  <rect x="214" y="590" width="280" height="280" rx="28" fill="#ff8c42"/>
+  <rect x="530" y="154" width="280" height="280" rx="28" fill="#ff8c42"/>
+  <rect x="530" y="470" width="280" height="280" rx="28" fill="#ff8c42"/>
+</svg>
