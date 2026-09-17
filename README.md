@@ -1,38 +1,50 @@
+<div align="center">
+
 # DeskShift
 
-**Less mouse, more keyboard.** Instant virtual-desktop management for Windows.
+**Less mouse, more keyboard.**
 
-DeskShift gives you keyboard-driven control over Windows virtual desktops — switch, move windows, create, and close — without touching the mouse.
+⚡ Instant virtual-desktop management for Windows.
 
-> ⚠️ DeskShift is built on Windows' *undocumented* virtual-desktop COM interfaces (via the [`winvd`](https://crates.io/crates/winvd) crate). These are not a supported public API and Microsoft changes them between Windows builds. **Requires Windows 11 24H2 (build 26100.2605) or later.**
+</div>
+
+---
+
+DeskShift puts your Windows virtual desktops under your fingertips. Switch desktops, move windows, and create or close workspaces instantly from your keyboard — no mouse, no digging through Task View.
+
+> ⚠️ **Heads up:** DeskShift is built on Windows' *undocumented* virtual-desktop COM interfaces (via the [`winvd`](https://crates.io/crates/winvd) crate). These are not a supported public API, and Microsoft changes them between Windows builds. **Requires Windows 11 24H2 (build 26100.2605) or later.**
 
 ## Features
 
-- **Switch desktops instantly** — `Alt+1` … `Alt+0`
-- **Move the active window** to another desktop — `Alt+Shift+1` … `Alt+Shift+0`
-- **Create** a desktop — `Alt+N`
-- **Close** the current desktop — `Alt+W`
-- **System tray** — reopen the window or quit
-- A live view of your desktops with one-click actions
+| Shortcut | Action |
+| --- | --- |
+| `Alt+1` … `Alt+0` | Switch to desktop 1–10 |
+| `Alt+Shift+1` … `Alt+Shift+0` | Move the active window to desktop 1–10 |
+| `Alt+N` | Create a new desktop |
+| `Alt+W` | Close the current desktop |
+
+Plus a system-tray icon (reopen the window / quit) and a live view of all your desktops.
+
+> 🚧 **Planned:** toggle every feature on/off and rebind every shortcut from a settings UI.
 
 ## Tech stack
 
-- [Tauri 2](https://tauri.app) (Rust backend)
-- [React](https://react.dev) + TypeScript + Vite (frontend)
+- [Tauri 2](https://tauri.app) — Rust backend
+- [React](https://react.dev) + TypeScript + Vite — frontend
 - [`winvd`](https://crates.io/crates/winvd) — Windows virtual-desktop bindings
 - [`tauri-plugin-global-shortcut`](https://v2.tauri.app/plugin/global-shortcut/) — global hotkeys
 
-## Development
+## Getting started
 
 ### Prerequisites
 
-See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). On Windows you need:
+Windows 11 24H2+ and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
 
 - [Rust](https://rustup.rs) (MSVC toolchain)
 - Microsoft C++ Build Tools ("Desktop development with C++")
 - Node.js (LTS)
 
-### Run
+### Develop
 
 ```sh
 npm install
@@ -45,6 +57,10 @@ npm run tauri dev
 npm run tauri build
 ```
 
+## Contributing
+
+PRs and issues welcome. DeskShift is deliberately keyboard-first and dependency-light.
+
 ## License
 
-MIT
+[MIT](LICENSE) © Hisham Buteen
