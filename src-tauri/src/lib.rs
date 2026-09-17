@@ -132,6 +132,10 @@ fn create_and_switch() -> Result<(), String> {
     winvd::switch_desktop(new_index).map_err(vd_err)
 }
 
+fn create_only() -> Result<(), String> {
+    winvd::create_desktop().map(|_| ()).map_err(vd_err)
+}
+
 fn remove_desktop_at(index: u32) -> Result<(), String> {
     let count = winvd::get_desktop_count().map_err(vd_err)?;
     if count <= 1 {
@@ -182,7 +186,9 @@ fn switch_desktop(index: u32) -> Result<(), String> {
 
 #[tauri::command]
 fn create_desktop() -> Result<(), String> {
-    create_and_switch()
+    // UI "+ New desktop" creates WITHOUT switching (so you can keep creating/renaming);
+    // the Alt+N hotkey still switches (create_and_switch).
+    create_only()
 }
 
 #[tauri::command]
@@ -296,6 +302,12 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Center the main window (the config also sets `center: true`; this is
+            // belt-and-suspenders so it's guaranteed regardless of monitor/DPI quirks).
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.center();
+            }
+
             #[cfg(desktop)]
             {
                 use tauri_plugin_global_shortcut::GlobalShortcutExt;
