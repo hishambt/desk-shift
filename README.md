@@ -13,7 +13,9 @@
 DeskShift puts your Windows virtual desktops under your fingertips. Switch desktops, move windows, and create or close workspaces instantly from your keyboard — no mouse, no digging through Task View.
 
 <p align="center">
-  <img src="screenshots/main.png" alt="DeskShift" width="520">
+  <img src="screenshots/desktops.png" alt="DeskShift — desktops view" width="32%">
+  <img src="screenshots/shortcuts.png" alt="DeskShift — shortcuts view" width="32%">
+  <img src="screenshots/settings.png" alt="DeskShift — settings view" width="32%">
 </p>
 
 
