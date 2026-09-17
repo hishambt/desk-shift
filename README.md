@@ -23,7 +23,7 @@ DeskShift puts your Windows virtual desktops under your fingertips. Switch deskt
 | `Alt+N` | Create a new desktop |
 | `Alt+W` | Close the current desktop |
 
-Plus a system-tray icon (reopen the window / quit) and a live view of all your desktops.
+Plus a system-tray icon (reopen the window / quit) and a live view of all your desktops — with **rename** (double-click a name) and **drag-to-reorder**, kept in sync even when you change desktops in Windows' Task View.
 
 > 🚧 **Planned:** toggle every feature on/off and rebind every shortcut from a settings UI.
 
@@ -31,7 +31,7 @@ Plus a system-tray icon (reopen the window / quit) and a live view of all your d
 
 - [Tauri 2](https://tauri.app) — Rust backend
 - [React](https://react.dev) + TypeScript + Vite — frontend
-- [`winvd`](https://crates.io/crates/winvd) — Windows virtual-desktop bindings
+- [`winvd`](https://crates.io/crates/winvd) — Windows virtual-desktop bindings (vendored under `src-tauri/vendor/winvd` with a `move_desktop` wrapper added for reordering)
 - [`tauri-plugin-global-shortcut`](https://v2.tauri.app/plugin/global-shortcut/) — global hotkeys
 
 ## Getting started

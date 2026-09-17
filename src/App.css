@@ -197,3 +197,18 @@ button.new {
   padding: 4px 8px;
   font-size: 14px;
 }
+
+/* Drag handle + drop target */
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+  user-select: none;
+  letter-spacing: -1px;
+  font-size: 14px;
+}
+
+.desktops li.dragover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}

@@ -200,6 +200,11 @@ fn rename_desktop(index: u32, name: String) -> Result<(), String> {
     winvd::get_desktop(index).set_name(&name).map_err(vd_err)
 }
 
+#[tauri::command]
+fn reorder_desktop(index: u32, position: u32) -> Result<(), String> {
+    winvd::move_desktop(index, position).map_err(vd_err)
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Global hotkeys
 // ─────────────────────────────────────────────────────────────────────────
@@ -280,6 +285,7 @@ pub fn run() {
             remove_desktop,
             move_active_window,
             rename_desktop,
+            reorder_desktop,
         ])
         .on_window_event(|window, event| {
             // Close-to-tray: hide instead of exiting so it keeps running in the tray.

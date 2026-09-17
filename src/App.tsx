@@ -24,6 +24,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
 
   async function refresh() {
     try {
@@ -70,6 +72,14 @@ function App() {
     await run(() => invoke("rename_desktop", { index, name }));
   }
 
+  function handleDrop(target: number) {
+    if (dragging !== null && dragging !== target) {
+      run(() => invoke("reorder_desktop", { index: dragging, position: target }));
+    }
+    setDragging(null);
+    setDragOver(null);
+  }
+
   return (
     <main className="container">
       <header>
@@ -92,7 +102,30 @@ function App() {
         <section>
           <ul className="desktops">
             {desktops.map((d) => (
-              <li key={d.index} className={d.index === current ? "current" : ""}>
+              <li
+                key={d.index}
+                className={[
+                  d.index === current ? "current" : "",
+                  dragOver === d.index ? "dragover" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                draggable
+                onDragStart={() => setDragging(d.index)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(d.index);
+                }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => handleDrop(d.index)}
+                onDragEnd={() => {
+                  setDragging(null);
+                  setDragOver(null);
+                }}
+              >
+                <span className="drag-handle" title="Drag to reorder">
+                  ⋮⋮
+                </span>
                 <span className="badge">{d.index + 1}</span>
                 {editing === d.index ? (
                   <input
